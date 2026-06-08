@@ -4,10 +4,10 @@ import pandas as pd
 import re
 
 # Load model and features
-with open('phishing_model.pkl', 'rb') as f:
+with open('phishing_model_clean.pkl', 'rb') as f:
     model = pickle.load(f)
 
-with open('feature_names.pkl', 'rb') as f:
+with open('feature_names_clean.pkl', 'rb') as f:
     feature_names = pickle.load(f)
 
 def analyze_url(url):
