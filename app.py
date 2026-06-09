@@ -3,12 +3,17 @@ import pickle
 import pandas as pd
 import re
 
-# Load model and features
-with open('phishing_model_clean.pkl', 'rb') as f:
+with open('phishing_model (8).pkl', 'rb') as f:
     model = pickle.load(f)
 
-with open('feature_names_clean.pkl', 'rb') as f:
+with open('feature_names.pkl', 'rb') as f:
     feature_names = pickle.load(f)
+
+trusted_domains = [
+    'google.com', 'youtube.com', 'facebook.com', 'twitter.com', 'instagram.com',
+    'linkedin.com', 'github.com', 'microsoft.com', 'apple.com', 'amazon.com',
+    'netflix.com', 'reddit.com', 'wikipedia.org', 'stackoverflow.com', 'gmail.com'
+]
 
 def analyze_url(url):
     features = {}
@@ -33,10 +38,10 @@ def analyze_url(url):
     features['has_https'] = 1 if url.startswith('https') else 0
     features['num_subdomains'] = max(0, url.count('.') - 1)
     features['has_shortener'] = 1 if any(s in url for s in ['bit.ly', 'tinyurl', 'goo.gl', 't.co']) else 0
+    features['is_trusted'] = 1 if any(d in url for d in trusted_domains) else 0
 
     return features
 
-# UI
 st.title("🎣 PhishingTrap")
 st.subheader("Paste a URL below to check if it's safe")
 
@@ -44,17 +49,22 @@ url_input = st.text_input("Enter URL here")
 
 if st.button("Check URL"):
     if url_input:
-        features = analyze_url(url_input)
-        df = pd.DataFrame([features])[feature_names]
-        prediction = model.predict(df)[0]
-        probability = model.predict_proba(df)[0]
+        is_trusted = any(d in url_input for d in trusted_domains)
 
-        if prediction == 1:
-            st.error(f"⚠️ PHISHING DETECTED — {round(probability[1]*100)}% confidence")
+        if is_trusted:
+            st.success("✅ SAFE — Trusted domain detected")
         else:
-            st.success(f"✅ SAFE — {round(probability[0]*100)}% confidence")
+            features = analyze_url(url_input)
+            df = pd.DataFrame([features])[feature_names]
+            prediction = model.predict(df)[0]
+            probability = model.predict_proba(df)[0]
+
+            if prediction == 1:
+                st.error(f"⚠️ PHISHING DETECTED — {round(probability[1]*100)}% confidence")
+            else:
+                st.success(f"✅ SAFE — {round(probability[0]*100)}% confidence")
 
         st.subheader("URL Analysis Breakdown")
-        st.write(pd.DataFrame([features]).T.rename(columns={0: 'value'}))
+        st.write(pd.DataFrame([analyze_url(url_input)]).T.rename(columns={0: 'value'}))
     else:
         st.warning("Please enter a URL first")
